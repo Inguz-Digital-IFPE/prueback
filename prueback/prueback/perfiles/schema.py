@@ -62,6 +62,47 @@ class DeleteUser(graphene.Mutation):
         return DeleteUser(confirm=confirm)
 
 
+class EditUser(graphene.Mutation):
+    user = graphene.Field(TrueUserType)
+
+    class Arguments:
+        id = graphene.Int(required=True)
+        username = graphene.String()
+        password = graphene.String()
+        nombre = graphene.String()
+        apellidos = graphene.String()
+        curp = graphene.String()
+        fecha_nacimiento = graphene.types.datetime.Date()
+        edad = graphene.Int()
+
+    def mutate(self, info, id, username=None, password=None, nombre=None,
+               apellidos=None, curp=None, fecha_nacimiento=None, edad=None):
+
+        user = User.objects.get(id=id)
+
+        perfil = UserProfile.objects.get(user=user)
+
+        if username:
+            user.username = username
+        if password:
+            user.password = password
+        if nombre:
+            perfil.nombre = nombre
+        if apellidos:
+            perfil.apellidos = apellidos
+        if curp:
+            perfil.curp = curp
+        if fecha_nacimiento:
+            perfil.fecha_nacimiento = fecha_nacimiento
+        if edad:
+            perfil.edad = edad
+
+        user.save()
+        perfil.save()
+
+        return EditUser(user=user)
+
+
 class Query(graphene.ObjectType):
     list_user = graphene.List(UserProfileType)
 
@@ -73,6 +114,7 @@ class Query(graphene.ObjectType):
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     delete_user = DeleteUser.Field()
+    edit_user = EditUser.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
