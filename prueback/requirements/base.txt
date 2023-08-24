@@ -1,3 +1,7 @@
 django==4.2
 tox
 flake8
+mapping
+graphene
+graphene_django
+django-graphql-jwt

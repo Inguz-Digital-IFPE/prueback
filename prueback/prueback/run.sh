@@ -31,9 +31,10 @@ while [ $# -gt 0 ] ; do
 		python manage.py migrate
 	    fi;
 
-	    # if [[ $LOADDATA == true ]] || [[ $PROD == false ]] ; then
-		# 	meter fixtures
-	    # fi;
+	    if [[ $LOADDATA == true ]] || [[ $PROD == false ]] ; then
+		echo -e "\Aplicando fictures... "
+		python manage.py loaddata perfiles/fixtures/*json
+	    fi;
 	    exit 0
 	    ;;
 	-t | --test)

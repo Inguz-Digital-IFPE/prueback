@@ -6,6 +6,8 @@ from django.contrib.auth.base_user import AbstractBaseUser
 
 
 class UserProfile(AbstractBaseUser):
+    USERNAME_FIELD = 'nombre'
+
     user = models.OneToOneField(
         User,
         primary_key=True,
