@@ -30,25 +30,27 @@ class CreateUser(graphene.Mutation):
         edad = graphene.Int(required=True)
 
     @login_required
-    def mutate(info, self, token, username, nombre, apellidos, curp,
+    def mutate(self, info, token, username, nombre, apellidos, curp,
                fecha_nacimiento, edad, password):
 
-        username = username.strip()
-        user = User.objects.create(username=username)
-        user.set_password(password)
+        user = info.context.user
+        if not user.is_anonymous:
+            username = username.strip()
+            user = User.objects.create(username=username)
+            user.set_password(password)
 
-        perfil = UserProfile.objects.create(user=user)
+            perfil = UserProfile.objects.create(user=user)
 
-        perfil.nombre = nombre
-        perfil.apellidos = apellidos
-        perfil.curp = curp
-        perfil.fecha_nacimiento = fecha_nacimiento
-        perfil.edad = edad
+            perfil.nombre = nombre
+            perfil.apellidos = apellidos
+            perfil.curp = curp
+            perfil.fecha_nacimiento = fecha_nacimiento
+            perfil.edad = edad
 
-        user.save()
-        perfil.save()
+            user.save()
+            perfil.save()
 
-        return CreateUser(user=user)
+            return CreateUser(user=user)
 
 
 class DeleteUser(graphene.Mutation):
@@ -60,13 +62,15 @@ class DeleteUser(graphene.Mutation):
 
     @login_required
     def mutate(self, info, token, id):
-        try:
-            User.objects.get(id=id).delete()
-            confirm = "User has been successfully deleted"
-        except Exception:
-            confirm = "User couldn't be deleted"
+        user = info.context.user
+        if not user.is_anonymous:
+            try:
+                User.objects.get(id=id).delete()
+                confirm = "User has been successfully deleted"
+            except Exception:
+                confirm = "User couldn't be deleted"
 
-        return DeleteUser(confirm=confirm)
+            return DeleteUser(confirm=confirm)
 
 
 class EditUser(graphene.Mutation):
@@ -88,29 +92,31 @@ class EditUser(graphene.Mutation):
                nombre=None, apellidos=None, curp=None,
                fecha_nacimiento=None, edad=None):
 
-        user = User.objects.get(id=id)
+        user = info.context.user
+        if not user.is_anonymous:
+            user = User.objects.get(id=id)
 
-        perfil = UserProfile.objects.get(user=user)
+            perfil = UserProfile.objects.get(user=user)
 
-        if username:
-            user.username = username
-        if password:
-            user.password = password
-        if nombre:
-            perfil.nombre = nombre
-        if apellidos:
-            perfil.apellidos = apellidos
-        if curp:
-            perfil.curp = curp
-        if fecha_nacimiento:
-            perfil.fecha_nacimiento = fecha_nacimiento
-        if edad:
-            perfil.edad = edad
+            if username:
+                user.username = username
+            if password:
+                user.password = password
+            if nombre:
+                perfil.nombre = nombre
+            if apellidos:
+                perfil.apellidos = apellidos
+            if curp:
+                perfil.curp = curp
+            if fecha_nacimiento:
+                perfil.fecha_nacimiento = fecha_nacimiento
+            if edad:
+                perfil.edad = edad
 
-        user.save()
-        perfil.save()
+            user.save()
+            perfil.save()
 
-        return EditUser(user=user)
+            return EditUser(user=user)
 
 
 class Query(graphene.ObjectType):
@@ -118,7 +124,9 @@ class Query(graphene.ObjectType):
 
     @login_required
     def resolve_list_user(root, info, **kwargs):
-        return User.objects.all()
+        user = info.context.user
+        if not user.is_anonymous:
+            return User.objects.all()
 
 
 class Mutation(graphene.ObjectType):
