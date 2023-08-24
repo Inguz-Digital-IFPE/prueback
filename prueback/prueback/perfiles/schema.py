@@ -2,11 +2,13 @@ import graphene
 from graphene_django import DjangoObjectType
 from .models import UserProfile
 from django.contrib.auth.models import User
+from graphql_jwt.decorators import login_required
 
 
 class TrueUserType(DjangoObjectType):
     class Meta:
         model = User
+        exclude_fields = ('password',)
 
 
 class UserProfileType(DjangoObjectType):
@@ -18,6 +20,7 @@ class CreateUser(graphene.Mutation):
     user = graphene.Field(TrueUserType)
 
     class Arguments:
+        token = graphene.String(required=True)
         username = graphene.String(required=True)
         password = graphene.String(required=True)
         nombre = graphene.String(required=True)
@@ -26,8 +29,10 @@ class CreateUser(graphene.Mutation):
         fecha_nacimiento = graphene.types.datetime.Date(required=True)
         edad = graphene.Int(required=True)
 
-    def mutate(info, self, username, nombre, apellidos, curp,
+    @login_required
+    def mutate(info, self, token, username, nombre, apellidos, curp,
                fecha_nacimiento, edad, password):
+
         username = username.strip()
         user = User.objects.create(username=username)
         user.set_password(password)
@@ -50,11 +55,13 @@ class DeleteUser(graphene.Mutation):
     confirm = graphene.String()
 
     class Arguments:
-        username = graphene.String(required=True)
+        token = graphene.String(required=True)
+        id = graphene.Int(required=True)
 
-    def mutate(self, info, username):
+    @login_required
+    def mutate(self, info, token, id):
         try:
-            User.objects.get(username=username).delete()
+            User.objects.get(id=id).delete()
             confirm = "User has been successfully deleted"
         except Exception:
             confirm = "User couldn't be deleted"
@@ -66,6 +73,7 @@ class EditUser(graphene.Mutation):
     user = graphene.Field(TrueUserType)
 
     class Arguments:
+        token = graphene.String(required=True)
         id = graphene.Int(required=True)
         username = graphene.String()
         password = graphene.String()
@@ -75,8 +83,10 @@ class EditUser(graphene.Mutation):
         fecha_nacimiento = graphene.types.datetime.Date()
         edad = graphene.Int()
 
-    def mutate(self, info, id, username=None, password=None, nombre=None,
-               apellidos=None, curp=None, fecha_nacimiento=None, edad=None):
+    @login_required
+    def mutate(self, info, token, id, username=None, password=None,
+               nombre=None, apellidos=None, curp=None,
+               fecha_nacimiento=None, edad=None):
 
         user = User.objects.get(id=id)
 
@@ -104,11 +114,11 @@ class EditUser(graphene.Mutation):
 
 
 class Query(graphene.ObjectType):
-    list_user = graphene.List(UserProfileType)
+    list_user = graphene.List(TrueUserType, token=graphene.String())
 
-    def resolve_list_user(root, info, **kwargs):
-        # We can easily optimize query count in the resolve method
-        return UserProfile.objects.all()
+    @login_required
+    def resolve_list_user(root, info, token=None, **kwargs):
+        return User.objects.all()
 
 
 class Mutation(graphene.ObjectType):
