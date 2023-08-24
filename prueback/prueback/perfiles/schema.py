@@ -1,11 +1,49 @@
 import graphene
 from graphene_django import DjangoObjectType
 from .models import UserProfile
+from django.contrib.auth.models import User
+
+
+class TrueUserType(DjangoObjectType):
+    class Meta:
+        model = User
 
 
 class UserProfileType(DjangoObjectType):
     class Meta:
         model = UserProfile
+
+
+class CreateUser(graphene.Mutation):
+    user = graphene.Field(TrueUserType)
+
+    class Arguments:
+        username = graphene.String(required=True)
+        password = graphene.String(required=True)
+        nombre = graphene.String(required=True)
+        apellidos = graphene.String(required=True)
+        curp = graphene.String(required=True)
+        fecha_nacimiento = graphene.types.datetime.Date(required=True)
+        edad = graphene.Int(required=True)
+
+    def mutate(info, self, username, nombre, apellidos, curp,
+               fecha_nacimiento, edad, password):
+        username = username.strip()
+        user = User.objects.create(username=username)
+        user.set_password(password)
+
+        perfil = UserProfile.objects.create(user=user)
+
+        perfil.nombre = nombre
+        perfil.apellidos = apellidos
+        perfil.curp = curp
+        perfil.fecha_nacimiento = fecha_nacimiento
+        perfil.edad = edad
+
+        user.save()
+        perfil.save()
+
+        return CreateUser(user=user)
 
 
 class Query(graphene.ObjectType):
@@ -16,4 +54,8 @@ class Query(graphene.ObjectType):
         return UserProfile.objects.all()
 
 
-schema = graphene.Schema(query=Query)
+class Mutation(graphene.ObjectType):
+    create_profile = CreateUser.Field()
+
+
+schema = graphene.Schema(query=Query, mutation=Mutation)
