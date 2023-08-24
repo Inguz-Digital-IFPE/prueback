@@ -46,6 +46,22 @@ class CreateUser(graphene.Mutation):
         return CreateUser(user=user)
 
 
+class DeleteUser(graphene.Mutation):
+    confirm = graphene.String()
+
+    class Arguments:
+        username = graphene.String(required=True)
+
+    def mutate(self, info, username):
+        try:
+            User.objects.get(username=username).delete()
+            confirm = "User has been successfully deleted"
+        except Exception:
+            confirm = "User couldn't be deleted"
+
+        return DeleteUser(confirm=confirm)
+
+
 class Query(graphene.ObjectType):
     list_user = graphene.List(UserProfileType)
 
@@ -55,7 +71,8 @@ class Query(graphene.ObjectType):
 
 
 class Mutation(graphene.ObjectType):
-    create_profile = CreateUser.Field()
+    create_user = CreateUser.Field()
+    delete_user = DeleteUser.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
