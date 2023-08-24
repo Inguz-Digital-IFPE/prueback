@@ -114,10 +114,10 @@ class EditUser(graphene.Mutation):
 
 
 class Query(graphene.ObjectType):
-    list_user = graphene.List(TrueUserType, token=graphene.String())
+    list_user = graphene.List(TrueUserType)
 
     @login_required
-    def resolve_list_user(root, info, token=None, **kwargs):
+    def resolve_list_user(root, info, **kwargs):
         return User.objects.all()
 
 
