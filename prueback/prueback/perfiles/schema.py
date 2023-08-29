@@ -2,6 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from .models import UserProfile
 from django.contrib.auth.models import User
+from graphql_jwt.decorators import login_required
 
 
 class TrueUserType(DjangoObjectType):
@@ -52,6 +53,7 @@ class DeleteUser(graphene.Mutation):
         token = graphene.String(required=True)
         id = graphene.Int(required=True)
 
+    @login_required
     def mutate(self, info, token, id):
         user = info.context.user
         if not user.is_anonymous:
@@ -78,6 +80,7 @@ class EditUser(graphene.Mutation):
         fecha_nacimiento = graphene.types.datetime.Date()
         edad = graphene.Int()
 
+    @login_required
     def mutate(self, info, token, id, username=None, password=None,
                nombre=None, apellidos=None, curp=None,
                fecha_nacimiento=None, edad=None):
@@ -90,7 +93,7 @@ class EditUser(graphene.Mutation):
             if username:
                 user.username = username
             if password:
-                user.password = password
+                user.set_password(password)
             if nombre:
                 perfil.nombre = nombre
             if apellidos:
@@ -111,6 +114,7 @@ class Query(graphene.ObjectType):
     list_user = graphene.List(TrueUserType,
                               token=graphene.NonNull(graphene.String))
 
+    @login_required
     def resolve_list_user(root, info, token, **kwargs):
         user = info.context.user
         if not user.is_anonymous:
