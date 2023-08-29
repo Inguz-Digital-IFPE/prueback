@@ -2,7 +2,6 @@ import graphene
 from graphene_django import DjangoObjectType
 from .models import UserProfile
 from django.contrib.auth.models import User
-from graphql_jwt.decorators import login_required
 
 
 class TrueUserType(DjangoObjectType):
@@ -20,7 +19,6 @@ class CreateUser(graphene.Mutation):
     user = graphene.Field(TrueUserType)
 
     class Arguments:
-        token = graphene.String(required=True)
         username = graphene.String(required=True)
         password = graphene.String(required=True)
         nombre = graphene.String(required=True)
@@ -29,28 +27,22 @@ class CreateUser(graphene.Mutation):
         fecha_nacimiento = graphene.types.datetime.Date(required=True)
         edad = graphene.Int(required=True)
 
-    @login_required
-    def mutate(self, info, token, username, nombre, apellidos, curp,
+    def mutate(self, info, username, nombre, apellidos, curp,
                fecha_nacimiento, edad, password):
 
-        user = info.context.user
-        if not user.is_anonymous:
-            username = username.strip()
-            user = User.objects.create(username=username)
-            user.set_password(password)
+        username = username.strip()
+        user = User.objects.create(username=username)
+        user.set_password(password)
+        perfil = UserProfile.objects.create(user=user)
+        perfil.nombre = nombre
+        perfil.apellidos = apellidos
+        perfil.curp = curp
+        perfil.fecha_nacimiento = fecha_nacimiento
+        perfil.edad = edad
+        user.save()
+        perfil.save()
 
-            perfil = UserProfile.objects.create(user=user)
-
-            perfil.nombre = nombre
-            perfil.apellidos = apellidos
-            perfil.curp = curp
-            perfil.fecha_nacimiento = fecha_nacimiento
-            perfil.edad = edad
-
-            user.save()
-            perfil.save()
-
-            return CreateUser(user=user)
+        return CreateUser(user=user)
 
 
 class DeleteUser(graphene.Mutation):
@@ -60,7 +52,6 @@ class DeleteUser(graphene.Mutation):
         token = graphene.String(required=True)
         id = graphene.Int(required=True)
 
-    @login_required
     def mutate(self, info, token, id):
         user = info.context.user
         if not user.is_anonymous:
@@ -87,7 +78,6 @@ class EditUser(graphene.Mutation):
         fecha_nacimiento = graphene.types.datetime.Date()
         edad = graphene.Int()
 
-    @login_required
     def mutate(self, info, token, id, username=None, password=None,
                nombre=None, apellidos=None, curp=None,
                fecha_nacimiento=None, edad=None):
@@ -97,7 +87,6 @@ class EditUser(graphene.Mutation):
             user = User.objects.get(id=id)
 
             perfil = UserProfile.objects.get(user=user)
-
             if username:
                 user.username = username
             if password:
@@ -112,7 +101,6 @@ class EditUser(graphene.Mutation):
                 perfil.fecha_nacimiento = fecha_nacimiento
             if edad:
                 perfil.edad = edad
-
             user.save()
             perfil.save()
 
@@ -120,10 +108,10 @@ class EditUser(graphene.Mutation):
 
 
 class Query(graphene.ObjectType):
-    list_user = graphene.List(TrueUserType)
+    list_user = graphene.List(TrueUserType,
+                              token=graphene.NonNull(graphene.String))
 
-    @login_required
-    def resolve_list_user(root, info, **kwargs):
+    def resolve_list_user(root, info, token, **kwargs):
         user = info.context.user
         if not user.is_anonymous:
             return User.objects.all()
