@@ -130,7 +130,7 @@ ENV/
 .travis-solo/*
 
 # project-specific
-*.sqlite3*
+prueback/*.sqlite3*
 
 # VisualStudio compiler
 obj/
