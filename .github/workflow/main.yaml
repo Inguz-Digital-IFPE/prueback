@@ -1,0 +1,68 @@
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  checkout:
+    name: Checkout
+    runs-on: ubuntu-20.04
+    outputs:
+        imaged1: ${{steps.imaged.outputs.imaged}}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Check for image django
+        id: imaged
+        run: |
+          source repo_name.sh
+          source $PROJECT_NAME/autodeploy_env.sh
+          echo $IMAGE_DJANGO
+          echo "::set-output name=imaged::$(echo $IMAGE_DJANGO)"
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-20.04
+    needs: checkout
+    if: ${{needs.checkout.outputs.imaged1 == 'true'}}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET }}
+        aws-region: us-east-2
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Change Dockerfile variables
+      run: |
+        sed -i 's|AWSACCOUNTID|'${{ secrets.AWS_ACCOUNT }}'|' docker/Dockerfile
+        sed -i 's|ECREPOSITORY|'${{ secrets.AWS_ECRREPO }}'|' docker/Dockerfile
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_DJANGO: true
+        IMAGE_TAG: pruebackdockerimage
+        REPO: ${{ secrets.AWS_ECRREPO }}
+      run: |
+        # Build a docker container and
+        # push it to ECR so that it can
+        # be deployed to ECS.
+        source repo_name.sh
+        source $PROJECT_NAME/autodeploy_env.sh
+        if [[ $IMAGE_DJANGO == true ]] || [[ $IMAGE_PIP == true ]] ; then
+          echo "Building Django Image"
+          docker build -t $ECR_REGISTRY/$REPO:$IMAGE_TAG -f docker/Dockerfile .
+          docker push $ECR_REGISTRY/$REPO:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$REPO:$IMAGE_TAG"
+        fi;
