@@ -53,7 +53,7 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_DJANGO: true
         IMAGE_TAG: pruebackdockerimage
-        REPO: ${{ secrets.AWS_ECRREPO }}
+        IMGREPO: ${{ secrets.AWS_ECRREPO }}
       run: |
         # Build a docker container and
         # push it to ECR so that it can
@@ -62,7 +62,7 @@ jobs:
         source $PROJECT_NAME/autodeploy_env.sh
         if [[ $IMAGE_DJANGO == true ]] || [[ $IMAGE_PIP == true ]] ; then
           echo "Building Django Image"
-          docker build -t $ECR_REGISTRY/$REPO:$IMAGE_TAG -f docker/Dockerfile .
-          docker push $ECR_REGISTRY/$REPO:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$IMGREPO:$IMAGE_TAG -f docker/Dockerfile .
+          docker push $ECR_REGISTRY/$IMGREPO:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$REPO:$IMAGE_TAG"
         fi;
