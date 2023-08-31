@@ -68,7 +68,6 @@ coverage.xml
 
 # Django stuff:
 *.log
-prueback/static/
 
 # Flask stuff:
 instance/
