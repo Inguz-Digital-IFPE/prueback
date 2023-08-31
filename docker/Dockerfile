@@ -1,4 +1,4 @@
-FROM AWSACCOUNTID.dkr.ecr.us-east-2.amazonaws.com/ECREPOSITORY:python3.9 AS whole_app
+FROM AWSACCOUNTID.dkr.ecr.us-east-2.amazonaws.com/ECREPOSITORY:django3.9 AS whole_app
 
 WORKDIR /prueback
 
